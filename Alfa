@@ -1,0 +1,416 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.IO;
+using System.Timers;
+using System.Net;
+using System.Security.Policy;
+using System.Xml.Schema;
+using System.Collections.Concurrent;
+using System.Collections;
+using System.Management.Instrumentation;
+using System.Text.RegularExpressions;
+
+
+
+/*
+Za úkol je vytvořit klientskou aplikaci, která bude ze zdrojové složky odesílat obsah souborů na server ke zpracování.
+Soubory budou do zdrojové složky průběžně generovány pomocí aplikace, 
+která poběží na pozadí a kterou je potřeba nejdřív zkompilovat ze zdrojových kódu uvedených níže (Tento kód simuluje aplikaci třetí strany a není v něm možné dělat žádné zásahy do logiky). -OK
+Zdrojová složka souborů je umístěna na "<aplikační složka generátoru souborů>/Files". - OK
+
+ 
+
+Vaše klientská aplikace bude odesílat obsah souboru na server podle priority, kdy prioritu určuje předpona souboru:
+-soubory s předponou 0_, 1_, 2_, 3_, 4_ budou odesílány s vysokou prioritou
+- soubory s předponou 5_, 6_, 7_, 8_, 9_ budou odesílány s normální prioritou
+- všechny ostatní soubory budou odesílány s nízkou prioritou
+Případné další složky ve zdrojové složce se budou ignorovat. -OK
+
+ 
+
+V praxi priorita bude znamenat, že se soubory s vyšší prioritou budou odesílat 10x rychleji než soubory s prioritou o stupeň nižší.
+Mělo by být zajištěno, že se nikdy neodešle jeden soubor 2x.
+Klient musí respektovat licenční omezení serveru, kdy server může přijmout pro zpracování maximálně 3 soubory z jedné klientské aplikace za vteřinu bez ohledu na prioritu souboru.
+Standardně poběží jedna klientská aplikace na jednom počítači.
+
+ 
+
+Poznámky:
+-Aplikaci je možné vytvořit jako konzolovou aplikaci, není potřeba žádného pokročilého grafického rozhraní.
+- V hodnocení úkolu bude kladen důraz na implementaci a efektivitu algoritmu pro určování priorit a rozhodování, kdy se má jaký soubor odeslat na server.
+- Pro zjednodušení je dovoleno udělat odeslání souboru na server pouze simulačně, kdy za odeslání na server se dá považovat například zavolání metody void Send(string content){ }, 
+nicméně je potřeba dodržet zadané licenční podmínky serveru.
+
+ add 1. lze si to představit jako vyhrazené časové sloty, 
+kdy mám sloty přiřazeny v poměru 100 slotu pro highprio, 
+10 pro midprio a 1 pro lowprio. Platí, že pokud se pro daný slot nebude v jeho čase vyskytovat k odeslání žádný soubor dane priority, 
+můžu tento slot ignorovat, případně použít pro odeslání souboru s jinou prioritou. 
+V praxi jde o to, že musí být zaručeno rychle zpracování souboru s vyšší prioritou a zároveň se nesmí zastavit zpracování souboru s nižší prioritou v případě zahlcení programu mnoha soubory.
+
+add 2.  odesílání souboru by mělo být průběžné. Efektivním řešením může být,
+aby se každých 333 milisekund spustilo jedno odesílání. Zde je potřeba upozornit, 
+že samotné odeslání může v praxi trvat déle než 333ms, takže by se obsahy souborů neměly odesílat sekvenčně za sebou. 
+Obsah souborů se na server odesílá pomocí HTTP Requestu (samotná implementace odesílání dat ale není součástí Vašeho úkolu a lze simulovat např. pomocí metody „Thread.Sleep()“, 
+případně „await Task.Delay()“ v případě použití asynchronního kódu).
+
+
+Ještě tip k realizaci, program by měl být lehce konfigurovatelný pro případy, 
+že se změní nějaký z parametrů (např. maximální počet souboru za vteřinu, poměr odesílání soborů mezi prioritami, atd.).
+
+Míru „konfigurovatelnosti“ programu ovšem nechávám zcela na Vašem uvážení.*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+namespace ClientApp
+{
+    // 0_, 1_, 2_, 3_, 4_
+    // 5_, 6_, 7_, 8_, 9_
+
+    public class Program
+    {
+        private static List<string> postqueue = new List<string>();
+        private static ConcurrentQueue<string> highqueue = new ConcurrentQueue<string>();
+        private static ConcurrentQueue<string> midqueue = new ConcurrentQueue<string>();
+        private static ConcurrentQueue<string> lowqueue = new ConcurrentQueue<string>();
+       
+
+        private static List<string> hprefixes = new List<string>() { "1_", "2_", "3_", "4_" };
+        private static List<string> mprefixes = new List<string>() { "5_", "6_", "7_", "8_", "9_" };
+
+   
+
+
+        private const int MAX_FILE_PER_SEC_SEND = 3;
+        private static int timeslots = 0;
+        private const string path = @"D:/VS_projekty/ConsoleApp/ConsoleApp/bin/Debug/Files";
+        public static int[] thresholds = new int[2] { 100, 111 };
+        //private static Regex rx = new Regex(@"\\[1-9]_");
+
+
+
+
+
+
+
+
+        static void Main(string[] args)
+        {
+
+           
+            Thread hpq = new Thread(sorting);
+            //Thread mpq = new Thread(mpqsorting);
+            //Thread lpq = new Thread(lpqsorting);
+            Thread postman = new Thread(distribution);
+
+            //lpq.Start();
+            //mpq.Start();
+            hpq.Start();
+            postman.Start();
+
+            
+
+            
+    }
+
+
+       
+
+
+
+
+
+
+        public static  void sorting()
+        {
+            while (true)
+            {
+
+                DirectoryInfo info = new DirectoryInfo(path);
+               
+                foreach (FileInfo file in info.GetFiles().OrderBy(p => p.CreationTime).ToArray())
+                {
+                    string fileName = file.FullName;
+                    Console.WriteLine(file);
+                    
+
+                    
+                   
+                    if (hprefixes.Any(fileName.Contains))
+                    {
+                        try
+                        {
+                            highqueue.Enqueue(File.ReadAllText(fileName));
+                            //Console.WriteLine("HPQ Thread is adding element to it's queue...");
+                            File.Delete(fileName);
+                        }
+                        catch(Exception e)
+                        {
+                            Console.WriteLine(e);
+                        }
+                        Thread.Sleep(300);
+                       
+                    }
+                    else if (mprefixes.Any(fileName.Contains))
+                    {
+                        try
+                        {
+                            midqueue.Enqueue(File.ReadAllText(fileName));
+                            //Console.WriteLine("HPQ Thread is adding element to it's queue...");
+                            File.Delete(fileName);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                        }
+                        Thread.Sleep(300);
+                    }
+                    else
+                    {
+
+                        try
+                        {
+                            lowqueue.Enqueue(File.ReadAllText(fileName));
+                            //Console.WriteLine("HPQ Thread is adding element to it's queue...");
+                            File.Delete(fileName);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                        }
+                        Thread.Sleep(300);
+                        
+
+                    }
+                }
+
+            }
+        }
+
+        
+
+/*
+        
+                public static void hpqsorting()
+                {
+
+                    while (true)
+                    {
+
+                foreach (string fileName in Directory.GetFiles(path))
+                {
+                    if (hprefixes.Any(fileName.Contains))
+                    {
+                        highqueue.Enqueue(File.ReadAllText(fileName));
+                        //Console.WriteLine("HPQ Thread is adding element to it's queue...");
+                        File.Delete(fileName);
+                        Thread.Sleep(500);
+                    }
+
+                }
+            }
+                }
+
+
+
+
+
+
+        public static void mpqsorting()
+        {
+
+            while (true)
+            {
+                foreach (string fileName in Directory.GetFiles(path))
+                {
+                    if (mprefixes.Any(fileName.Contains))
+                    {
+                        //Console.WriteLine("MPQ Thread is adding element to it's queue...");
+                        midqueue.Enqueue(File.ReadAllText(fileName));
+                        File.Delete(fileName);
+                        Thread.Sleep(500);
+
+                    }
+
+                }
+            }
+        }
+
+                        
+
+        
+                
+        
+        public static void lpqsorting()
+        {
+
+            while (true)
+            {
+            foreach (string fileName in Directory.GetFiles(path))
+            {
+
+                if (!Regex.IsMatch(fileName, path  + rx))
+                {
+                    //Console.WriteLine("LPQ Thread is adding element to it's queue...");
+                    lowqueue.Enqueue(File.ReadAllText(fileName));
+                    File.Delete(fileName);
+                    Thread.Sleep(500);
+                }
+                
+            }
+
+            }
+        }
+
+
+        */
+                
+
+
+
+        public static void distribution()
+        {
+            string item;
+
+            while (true)
+            {
+
+
+                if (postqueue.Count == MAX_FILE_PER_SEC_SEND)
+                {
+                    Console.WriteLine("Postman sending: " + postqueue[0] + " " + postqueue[1] + " " + postqueue[2]);
+                    postqueue.Clear();
+                    Thread.Sleep(1000);
+                }
+
+                if(timeslots > 111)
+                {
+                    timeslots = 0;
+                }
+
+
+                if (timeslots < thresholds[0])
+                {
+                    
+                    if (highqueue.TryDequeue(out item))
+                    {
+                        Console.WriteLine(item);
+                        postqueue.Add(item);
+                        //postqueue.Enqueue(item);
+                        
+                        timeslots++;
+                    }
+                    else
+                    {
+                        if (midqueue.TryDequeue(out item))
+                        {
+                            Console.WriteLine(item);
+                            postqueue.Add(item);
+                            //postqueue.Enqueue(item);
+                            
+                            timeslots++;
+                        }
+                        else if (lowqueue.TryDequeue(out item))
+                        {
+                            Console.WriteLine(item);
+                            postqueue.Add(item);
+                            //postqueue.Enqueue(item);
+                            
+                            timeslots++;
+                        }
+                        else
+                        {
+                            timeslots++;
+                            continue;
+                        }
+                    }
+
+                }
+                else if (timeslots >= thresholds[0] && timeslots < thresholds[1])
+                {
+                    if (midqueue.TryDequeue(out item))
+                    {
+                        Console.WriteLine(item);
+                        postqueue.Add(item);
+                        //postqueue.Enqueue(item);
+                        
+                        timeslots++;
+                    }
+                    else
+                    {
+                        if (highqueue.TryDequeue(out item))
+                        {
+                            Console.WriteLine(item);
+                            postqueue.Add(item);
+                            //postqueue.Enqueue(item);
+                            
+                            timeslots++;
+                        }
+                        else if (lowqueue.TryDequeue(out item))
+                        {
+                            Console.WriteLine(item);
+                            postqueue.Add(item);
+                            //postqueue.Enqueue(item);
+                            
+                            timeslots++;
+                        }
+                        else
+                        {
+                            timeslots++;
+                            continue;
+                        }
+                    }
+                }
+                else if (timeslots == thresholds[1])
+                {
+                    if (lowqueue.TryDequeue(out item))
+                    {
+                        Console.WriteLine(item);
+                        postqueue.Add(item);
+                        //postqueue.Enqueue(item);
+                        
+                        timeslots++;
+                    }
+                    else
+                    {
+                        if (highqueue.TryDequeue(out item))
+                        {
+                            Console.WriteLine(item);
+                            postqueue.Add(item);
+                            //postqueue.Enqueue(item);
+                            
+                            timeslots++;
+                        }
+                        else if (midqueue.TryDequeue(out item))
+                        {
+                            Console.WriteLine(item);
+                            postqueue.Add(item);
+                            //postqueue.Enqueue(item);
+                            
+                            timeslots++;
+                        }
+                        else
+                        {
+                            timeslots++;
+                            continue;
+                        }
+                    }
+                }
+            }
+
+
+        }
+    }
+}
