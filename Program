@@ -54,18 +54,6 @@ Ještě tip k realizaci, program by měl být lehce konfigurovatelný pro příp
 
 Míru „konfigurovatelnosti“ programu ovšem nechávám zcela na Vašem uvážení.*/
 
-
-
-
-
-
-
-
-
-
-
-
-
 namespace ClientApp
 {
     public class Program
