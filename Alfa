@@ -221,24 +221,21 @@ namespace ClientApp
                         postqueue.Add(item);
                         timeslots++;
                     }
+                    else if (midqueue.TryDequeue(out item) && !postqueue.Contains(item))
+                    {
+                        postqueue.Add(item);
+                        timeslots++;
+                    }
+                    else if (lowqueue.TryDequeue(out item) && !postqueue.Contains(item))
+                    {
+                        postqueue.Add(item);
+                        timeslots++;
+                    }
                     else
                     {
-                        if (midqueue.TryDequeue(out item) && !postqueue.Contains(item))
-                        {
-                            postqueue.Add(item);
-                            timeslots++;
-                        }
-                        else if (lowqueue.TryDequeue(out item) && !postqueue.Contains(item))
-                        {
-                            postqueue.Add(item);
-                            timeslots++;
-                        }
-                        else
-                        {
-                            timeslots++;
-                            continue;
-                        }
-                    }
+                        timeslots++;
+                        continue;
+                    }    
                 }
                 else if (timeslots >= th1 && timeslots < th2)
                 {
@@ -247,24 +244,21 @@ namespace ClientApp
                         postqueue.Add(item);
                         timeslots++;
                     }
+                    else if (highqueue.TryDequeue(out item) && !postqueue.Contains(item))
+                    {
+                        postqueue.Add(item);
+                        timeslots++;
+                    }
+                    else if (lowqueue.TryDequeue(out item) && !postqueue.Contains(item))
+                    {
+                        postqueue.Add(item);
+                        timeslots++;
+                    }
                     else
                     {
-                        if (highqueue.TryDequeue(out item) && !postqueue.Contains(item))
-                        {
-                            postqueue.Add(item);
-                            timeslots++;
-                        }
-                        else if (lowqueue.TryDequeue(out item) && !postqueue.Contains(item))
-                        {
-                            postqueue.Add(item);
-                            timeslots++;
-                        }
-                        else
-                        {
-                            timeslots++;
-                            continue;
-                        }
-                    }
+                        timeslots++;
+                        continue;
+                    }     
                 }
                 else if (timeslots == th2)
                 {
@@ -273,25 +267,25 @@ namespace ClientApp
                         postqueue.Add(item);
                         timeslots++;
                     }
+                    else if (highqueue.TryDequeue(out item) && !postqueue.Contains(item))
+                    {
+
+                        postqueue.Add(item);
+                        timeslots++;
+                    }
+                    else if (midqueue.TryDequeue(out item) && !postqueue.Contains(item))
+                    {
+                        postqueue.Add(item);
+                        timeslots++;
+                    }
                     else
                     {
-                        if (highqueue.TryDequeue(out item) && !postqueue.Contains(item))
-                        {
-
-                            postqueue.Add(item);
-                            timeslots++;
-                        }
-                        else if (midqueue.TryDequeue(out item) && !postqueue.Contains(item))
-                        {
-                            postqueue.Add(item);
-                            timeslots++;
-                        }
-                        else
-                        {
-                            timeslots++;
-                            continue;
-                        }
-                    }
+                        timeslots++;
+                        continue;
+                    }    
+                    
+                        
+                    
                 }
             }
         }
