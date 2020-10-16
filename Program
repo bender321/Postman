@@ -72,6 +72,7 @@ namespace ClientApp
         private static string path;
         private static int th1, th2;
         private static int filesOk = 0;
+        private static string item = "";
 
         static void Main(string[] args)
         {
@@ -127,7 +128,7 @@ namespace ClientApp
 
         private static void post(int maxFilesPerSec)
         {
-            if (postqueue.Count == maxFilesPerSec)
+            if ((postqueue.Count == maxFilesPerSec) || (item == ""))
             {
                 try 
                 { 
@@ -152,6 +153,7 @@ namespace ClientApp
         private static void sorting()
         {
             while (true)
+            Thread.Sleep(500);
             {
                 DirectoryInfo info = new DirectoryInfo(path);
 
@@ -196,9 +198,8 @@ namespace ClientApp
         }
         private static void priorityzation()
         {
-            string item;
-
             while (true)
+            Thread.Sleep(500);
             {
                 post(maxFilesPerSec);
 
