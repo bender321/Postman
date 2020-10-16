@@ -1,0 +1,75 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.IO;
+using System.Threading;
+
+namespace ConsoleApp
+{
+    internal class Program
+    {
+        private static Random random = new Random();
+        private static List<string> prefixes = new List<string>() { "1_", "2_", "3_", "4_", "5_", "6_", "7_", "8_", "9_", "a", "b", "c", "d", "e", "f", "g", "h" };
+        private static string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        private static string numbers = "0123456789";
+        private static void Main(string[] args)
+        {
+            Thread t = new Thread(new ThreadStart(GenerateFiles));
+            t.Start();
+
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+        }
+
+        private static void GenerateFiles()
+        {
+            string folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Files");
+
+            if (!Directory.Exists(folder))
+            {
+                try
+                {
+                    Directory.CreateDirectory(folder);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    return;
+                }
+            }
+
+            long counter = 1;
+            while (true)
+            {
+                Console.WriteLine("soubor");
+                try
+                {
+                    string prefix = prefixes[random.Next(prefixes.Count)];
+                    string name = prefix + DateTime.Now.ToString("yyyyMMddHHmmss") + Guid.NewGuid().ToString() + ".dat";
+                    string content = "{ name: \"" + name + "\", number: \"" + RandomNumber() + "\", data: \"" + RandomContent(random.Next(20, 40)) + "\"}";
+                    File.WriteAllText(Path.Combine(folder, name), content);
+
+                    if (counter % 100 == 0)
+                        Thread.Sleep(random.Next(1000, 20000));
+                    else
+                        Thread.Sleep(random.Next(10, 500));
+                    counter++;
+                }
+                catch (Exception e) 
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+        }
+
+        public static string RandomContent(int length)
+        {
+            return new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        public static string RandomNumber()
+        {
+            return new string(Enumerable.Repeat(numbers, 9).Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+    }
+}
