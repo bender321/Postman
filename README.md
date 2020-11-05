@@ -1,2 +1,2 @@
 # Postman
-Klientská aplikace, která posílá požadavky podle priority a respektuje licenční omezení naslouchajícího serveru.
+Klientská aplikace v C#, která posílá požadavky podle priority a respektuje licenční omezení naslouchajícího serveru.
